@@ -18,20 +18,20 @@ const (
 )
 
 type StatusTransition struct {
-	From   Status
-	To     Status
-	At     time.Time
-	Reason string
+	From   Status    `json:"from"`
+	To     Status    `json:"to"`
+	At     time.Time `json:"at"`
+	Reason string    `json:"reason"`
 }
 
 type Payment struct {
-	ID         uuid.UUID
-	MerchantID uuid.UUID
-	Amount     int64  // stored in the smallest currency unit (cents) — never float64 for money
-	Currency   string // ISO 4217, e.g. "USD"
-	Status     Status
-	CreatedAt  time.Time
-	History    []StatusTransition
+	ID         uuid.UUID          `json:"id"`
+	MerchantID uuid.UUID          `json:"merchant_id"`
+	Amount     int64              `json:"amount"`
+	Currency   string             `json:"currency"`
+	Status     Status             `json:"status"`
+	CreatedAt  time.Time          `json:"created_at"`
+	History    []StatusTransition `json:"history"`
 }
 
 func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, error) {

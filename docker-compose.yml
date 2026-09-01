@@ -1,0 +1,41 @@
+services:
+  payments-service:
+    build:
+      context: ./payments-service
+    ports:
+      - "8081:8080"   # host:container — 8081 on your machine, still 8080 inside the container
+    environment:
+      DB_HOST: payments-db
+      DB_PORT: 5432
+      DB_USER: ${PAYMENTS_DB_USER}
+      DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
+      DB_NAME: ${PAYMENTS_DB_NAME}
+      PORT: 8080
+    depends_on:
+      payments-db:
+        condition: service_healthy
+    networks:
+      - payflow-network
+
+  payments-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${PAYMENTS_DB_USER}
+      POSTGRES_PASSWORD: ${PAYMENTS_DB_PASSWORD}
+      POSTGRES_DB: ${PAYMENTS_DB_NAME}
+    volumes:
+      - payments-db-data:/var/lib/postgresql/data
+      - ./payments-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PAYMENTS_DB_USER} -d ${PAYMENTS_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - payflow-network
+
+volumes:
+  payments-db-data:
+
+networks:
+  payflow-network:
