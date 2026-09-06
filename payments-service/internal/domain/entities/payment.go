@@ -32,14 +32,38 @@ type Payment struct {
 	Status     Status             `json:"status"`
 	CreatedAt  time.Time          `json:"created_at"`
 	History    []StatusTransition `json:"history"`
+	events     []DomainEvent      `json:"-"`
 }
 
+type DomainEvent struct {
+	Type    string
+	Payload map[string]interface{}
+}
+
+func (p *Payment) recordEvent(eventType string) {
+	p.events = append(p.events, DomainEvent{
+		Type: eventType,
+		Payload: map[string]interface{}{
+			"payment_id":  p.ID,
+			"merchant_id": p.MerchantID,
+			"amount":      p.Amount,
+			"currency":    p.Currency,
+			"status":      p.Status,
+		},
+	})
+}
+
+func (p *Payment) PullEvents() []DomainEvent {
+	events := p.events
+	p.events = nil
+	return events
+}
 func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, error) {
 	if amount <= 0 {
 		return nil, domainerrors.ErrInvalidAmount
 	}
 	now := time.Now().UTC()
-	return &Payment{
+	p := &Payment{
 		ID:         uuid.New(),
 		MerchantID: merchantID,
 		Amount:     amount,
@@ -49,7 +73,10 @@ func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, 
 		History: []StatusTransition{
 			{From: "", To: StatusCreated, At: now, Reason: "payment created"},
 		},
-	}, nil
+	}
+	p.recordEvent("PaymentCreated")
+	return p, nil
+
 }
 
 func (p *Payment) transition(to Status, reason string) {
@@ -67,6 +94,7 @@ func (p *Payment) Authorize() error {
 		return domainerrors.ErrInvalidStateTransition
 	}
 	p.transition(StatusAuthorized, "payment authorized")
+	p.recordEvent("PaymentAuthorized")
 	return nil
 }
 
@@ -75,6 +103,7 @@ func (p *Payment) Capture() error {
 		return domainerrors.ErrPaymentNotAuthorized
 	}
 	p.transition(StatusCaptured, "payment captured")
+	p.recordEvent("PaymentCaptured")
 	return nil
 }
 
@@ -83,6 +112,7 @@ func (p *Payment) Fail(reason string) error {
 		return domainerrors.ErrPaymentAlreadyTerminal
 	}
 	p.transition(StatusFailed, reason)
+	p.recordEvent("PaymentFailed")
 	return nil
 }
 
@@ -91,5 +121,6 @@ func (p *Payment) Refund() error {
 		return domainerrors.ErrPaymentNotCaptured
 	}
 	p.transition(StatusRefunded, "payment refunded")
+	p.recordEvent("PaymentRefunded")
 	return nil
 }
