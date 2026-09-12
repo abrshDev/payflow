@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/abrshDev/payment-service/internal/app/payment/commands"
 	"github.com/abrshDev/payment-service/internal/app/payment/queries"
@@ -9,6 +13,8 @@ import (
 	"github.com/abrshDev/payment-service/internal/delivery/http/handlers"
 	"github.com/abrshDev/payment-service/internal/infrastructure/config"
 	"github.com/abrshDev/payment-service/internal/infrastructure/database/postgres"
+	"github.com/abrshDev/payment-service/internal/infrastructure/kafka"
+	"github.com/abrshDev/payment-service/internal/infrastructure/outbox"
 )
 
 func main() {
@@ -37,8 +43,26 @@ func main() {
 
 	router := httpdelivery.NewRouter(paymentHandler)
 
-	log.Printf("payments-service listening on :%s", cfg.Port)
-	if err := router.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("server failed: %v", err)
-	}
+	producer := kafka.NewProducer(cfg.KafkaBroker, cfg.KafkaTopic)
+	defer producer.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	relay := outbox.NewRelay(db, producer)
+	go relay.Start(ctx)
+
+	go func() {
+		log.Printf("payments-service listening on :%s", cfg.Port)
+		if err := router.Run(":" + cfg.Port); err != nil {
+			log.Fatalf("server failed: %v", err)
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	<-sigCh
+	log.Println("shutting down...")
+	cancel()
 }
