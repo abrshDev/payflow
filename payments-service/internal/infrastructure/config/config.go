@@ -9,12 +9,14 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	Port       string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	Port        string
+	KafkaBroker string
+	KafkaTopic  string
 }
 
 func Load() (*Config, error) {
@@ -25,9 +27,11 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DBHost: getEnv("DB_HOST", "localhost"),
-		DBPort: getEnv("DB_PORT", "5432"),
-		Port:   getEnv("PORT", "8080"),
+		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBPort:      getEnv("DB_PORT", "5432"),
+		Port:        getEnv("PORT", "8080"),
+		KafkaBroker: getEnv("KAFKA_BROKER", "localhost:9092"),
+		KafkaTopic:  getEnv("KAFKA_TOPIC", "payments"),
 	}
 
 	var missing []string
