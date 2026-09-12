@@ -11,6 +11,8 @@ services:
       DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
       DB_NAME: ${PAYMENTS_DB_NAME}
       PORT: 8080
+      KAFKA_BROKER: kafka:9092
+      KAFKA_TOPIC: payments
     depends_on:
       payments-db:
         condition: service_healthy
