@@ -23,12 +23,14 @@ type StatusTransition struct {
 	At     time.Time `json:"at"`
 	Reason string    `json:"reason"`
 }
-
+type Money struct {
+	Amount   int64  `json:"amount"`
+	Currency string `json:"currency"`
+}
 type Payment struct {
 	ID         uuid.UUID          `json:"id"`
 	MerchantID uuid.UUID          `json:"merchant_id"`
-	Amount     int64              `json:"amount"`
-	Currency   string             `json:"currency"`
+	Amount     Money              `json:"amount"`
 	Status     Status             `json:"status"`
 	CreatedAt  time.Time          `json:"created_at"`
 	History    []StatusTransition `json:"history"`
@@ -46,8 +48,8 @@ func (p *Payment) recordEvent(eventType string) {
 		Payload: map[string]interface{}{
 			"payment_id":  p.ID,
 			"merchant_id": p.MerchantID,
-			"amount":      p.Amount,
-			"currency":    p.Currency,
+			"amount":      p.Amount.Amount,
+			"currency":    p.Amount.Currency,
 			"status":      p.Status,
 		},
 	})
@@ -59,6 +61,10 @@ func (p *Payment) PullEvents() []DomainEvent {
 	return events
 }
 func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, error) {
+	money, err := NewMoney(amount, currency)
+	if err != nil {
+		return nil, err
+	}
 	if amount <= 0 {
 		return nil, domainerrors.ErrInvalidAmount
 	}
@@ -66,8 +72,7 @@ func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, 
 	p := &Payment{
 		ID:         uuid.New(),
 		MerchantID: merchantID,
-		Amount:     amount,
-		Currency:   currency,
+		Amount:     money,
 		Status:     StatusCreated,
 		CreatedAt:  now,
 		History: []StatusTransition{
@@ -78,7 +83,15 @@ func NewPayment(merchantID uuid.UUID, amount int64, currency string) (*Payment, 
 	return p, nil
 
 }
-
+func NewMoney(amount int64, currency string) (Money, error) {
+	if amount <= 0 {
+		return Money{}, domainerrors.ErrInvalidAmount
+	}
+	if currency == "" {
+		return Money{}, domainerrors.ErrInvalidCurrency
+	}
+	return Money{Amount: amount, Currency: currency}, nil
+}
 func (p *Payment) transition(to Status, reason string) {
 	p.History = append(p.History, StatusTransition{
 		From:   p.Status,

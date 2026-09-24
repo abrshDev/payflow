@@ -8,4 +8,5 @@ var (
 	ErrPaymentNotCaptured     = errors.New("payment must be captured before it can be refunded")
 	ErrInvalidAmount          = errors.New("payment amount must be greater than zero")
 	ErrPaymentAlreadyTerminal = errors.New("payment is in a terminal state and cannot be modified")
+	ErrInvalidCurrency        = errors.New("currency must be a non-empty string")
 )
