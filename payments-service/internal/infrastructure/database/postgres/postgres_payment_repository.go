@@ -34,7 +34,7 @@ func (r *PostgresPaymentRepository) Save(ctx context.Context, payment *entities.
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (id) DO UPDATE
 		SET status = EXCLUDED.status, history = EXCLUDED.history
-	`, payment.ID, payment.MerchantID, payment.Amount, payment.Currency,
+	`, payment.ID, payment.MerchantID, payment.Amount.Amount, payment.Amount.Currency,
 		payment.Status, payment.CreatedAt, historyJSON)
 	if err != nil {
 		return err
@@ -69,8 +69,7 @@ func (r *PostgresPaymentRepository) FindByID(ctx context.Context, id uuid.UUID) 
 	var historyJSON []byte
 
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&p.ID, &p.MerchantID, &p.Amount, &p.Currency,
-		&p.Status, &p.CreatedAt, &historyJSON,
+		&p.ID, &p.MerchantID, &p.Amount.Amount, &p.Amount.Currency, &p.Status, &p.CreatedAt, &historyJSON,
 	)
 	if err != nil {
 		return nil, err
