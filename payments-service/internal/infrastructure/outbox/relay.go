@@ -53,7 +53,7 @@ func (r *Relay) publishPending(ctx context.Context) {
 			continue
 		}
 
-		if err := r.producer.Publish(ctx, aggregateID, payload); err != nil {
+		if err := r.producer.Publish(ctx, aggregateID, id, payload); err != nil {
 			log.Printf("relay: publish failed for event %s: %v", id, err)
 			continue
 		}
