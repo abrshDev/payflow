@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package payments.v1;
+
+option go_package = "github.com/abrshDev/payflow/proto/payments/v1;paymentsv1";
+
+service PaymentService {
+  rpc CreatePayment(CreatePaymentRequest) returns (Payment);
+  rpc GetPayment(GetPaymentRequest) returns (Payment);
+  rpc AuthorizePayment(AuthorizePaymentRequest) returns (Payment);
+  rpc CapturePayment(CapturePaymentRequest) returns (Payment);
+  rpc RefundPayment(RefundPaymentRequest) returns (Payment);
+}
+
+message CreatePaymentRequest {
+  string merchant_id = 1;
+  int64  amount      = 2;
+  string currency    = 3;
+}
+
+message GetPaymentRequest {
+  string id = 1;
+}
+
+message AuthorizePaymentRequest {
+  string id = 1;
+}
+
+message CapturePaymentRequest {
+  string id = 1;
+}
+
+message RefundPaymentRequest {
+  string id = 1;
+}
+
+message Payment {
+  string id          = 1;
+  string merchant_id = 2;
+  int64  amount      = 3;
+  string currency    = 4;
+  string status      = 5;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

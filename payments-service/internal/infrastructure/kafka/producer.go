@@ -20,10 +20,13 @@ func NewProducer(brokerAddr, topic string) *Producer {
 	}
 }
 
-func (p *Producer) Publish(ctx context.Context, key string, value []byte) error {
+func (p *Producer) Publish(ctx context.Context, key string, eventID string, value []byte) error {
 	return p.writer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(key),
 		Value: value,
+		Headers: []kafka.Header{
+			{Key: "event_id", Value: []byte(eventID)},
+		},
 	})
 }
 
