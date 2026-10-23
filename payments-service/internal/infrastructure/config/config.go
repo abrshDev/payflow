@@ -15,6 +15,7 @@ type Config struct {
 	DBPassword  string
 	DBName      string
 	Port        string
+	GRPCPort    string
 	KafkaBroker string
 	KafkaTopic  string
 }
@@ -30,6 +31,7 @@ func Load() (*Config, error) {
 		DBHost:      getEnv("DB_HOST", "localhost"),
 		DBPort:      getEnv("DB_PORT", "5432"),
 		Port:        getEnv("PORT", "8080"),
+		GRPCPort:    getEnv("GRPC_PORT", "50051"),
 		KafkaBroker: getEnv("KAFKA_BROKER", "localhost:9092"),
 		KafkaTopic:  getEnv("KAFKA_TOPIC", "payments"),
 	}

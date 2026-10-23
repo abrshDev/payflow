@@ -3,18 +3,22 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
+	paymentsv1 "github.com/abrshDev/payflow/proto/payments/v1"
 	"github.com/abrshDev/payment-service/internal/app/payment/commands"
 	"github.com/abrshDev/payment-service/internal/app/payment/queries"
+	grpcdelivery "github.com/abrshDev/payment-service/internal/delivery/grpc"
 	httpdelivery "github.com/abrshDev/payment-service/internal/delivery/http"
 	"github.com/abrshDev/payment-service/internal/delivery/http/handlers"
 	"github.com/abrshDev/payment-service/internal/infrastructure/config"
 	"github.com/abrshDev/payment-service/internal/infrastructure/database/postgres"
 	"github.com/abrshDev/payment-service/internal/infrastructure/kafka"
 	"github.com/abrshDev/payment-service/internal/infrastructure/outbox"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -43,6 +47,17 @@ func main() {
 
 	router := httpdelivery.NewRouter(paymentHandler)
 
+	grpcLis, err := net.Listen("tcp", ":"+cfg.GRPCPort)
+	if err != nil {
+		log.Fatalf("failed to listen on gRPC port %s: %v", cfg.GRPCPort, err)
+	}
+
+	grpcServer := grpc.NewServer()
+	paymentGRPCServer := grpcdelivery.NewPaymentServer(
+		createHandler, authorizeHandler, captureHandler, refundHandler, getHandler,
+	)
+	paymentsv1.RegisterPaymentServiceServer(grpcServer, paymentGRPCServer)
+
 	producer := kafka.NewProducer(cfg.KafkaBroker, cfg.KafkaTopic)
 	defer producer.Close()
 
@@ -53,9 +68,16 @@ func main() {
 	go relay.Start(ctx)
 
 	go func() {
-		log.Printf("payments-service listening on :%s", cfg.Port)
+		log.Printf("payments-service HTTP listening on :%s", cfg.Port)
 		if err := router.Run(":" + cfg.Port); err != nil {
-			log.Fatalf("server failed: %v", err)
+			log.Fatalf("http server failed: %v", err)
+		}
+	}()
+
+	go func() {
+		log.Printf("payments-service gRPC listening on :%s", cfg.GRPCPort)
+		if err := grpcServer.Serve(grpcLis); err != nil {
+			log.Fatalf("grpc server failed: %v", err)
 		}
 	}()
 
@@ -64,5 +86,6 @@ func main() {
 
 	<-sigCh
 	log.Println("shutting down...")
+	grpcServer.GracefulStop()
 	cancel()
 }
