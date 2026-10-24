@@ -1,9 +1,11 @@
 services:
   payments-service:
     build:
-      context: ./payments-service
+      context: .
+      dockerfile: payments-service/dockerfile
     ports:
       - "8081:8080"
+      - "9090:9090"
     environment:
       DB_HOST: payments-db
       DB_PORT: 5432
@@ -11,6 +13,7 @@ services:
       DB_PASSWORD: ${PAYMENTS_DB_PASSWORD}
       DB_NAME: ${PAYMENTS_DB_NAME}
       PORT: 8080
+      GRPC_PORT: 9090
       KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: payments
     depends_on:

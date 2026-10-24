@@ -19,6 +19,7 @@ import (
 	"github.com/abrshDev/payment-service/internal/infrastructure/kafka"
 	"github.com/abrshDev/payment-service/internal/infrastructure/outbox"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -57,6 +58,7 @@ func main() {
 		createHandler, authorizeHandler, captureHandler, refundHandler, getHandler,
 	)
 	paymentsv1.RegisterPaymentServiceServer(grpcServer, paymentGRPCServer)
+	reflection.Register(grpcServer)
 
 	producer := kafka.NewProducer(cfg.KafkaBroker, cfg.KafkaTopic)
 	defer producer.Close()

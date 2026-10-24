@@ -1,12 +1,16 @@
 # ---- Build stage ----
 FROM golang:1.25-alpine AS builder
 
-WORKDIR /app
+# Build context is the repo root, so the proto module is available at ../proto
+WORKDIR /src
 
-COPY go.mod go.sum ./
+COPY proto ./proto
+COPY payments-service/go.mod payments-service/go.sum ./payments-service/
+
+WORKDIR /src/payments-service
 RUN go mod download
 
-COPY . .
+COPY payments-service/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -o payments-service ./cmd/main.go
 
 # ---- Final stage ----
@@ -14,9 +18,9 @@ FROM alpine:latest
 
 WORKDIR /app
 
-COPY --from=builder /app/payments-service .
-COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /src/payments-service/payments-service .
+COPY --from=builder /src/payments-service/migrations ./migrations
 
-EXPOSE 8080
+EXPOSE 8080 9090
 
 CMD ["./payments-service"]
